@@ -1,0 +1,41 @@
+import pandas as pd
+from openpyxl import load_workbook
+from openpyxl.styles import PatternFill
+
+# Load the cleaned Excel file
+input_file = "cleaned_dates.xlsx"
+df = pd.read_excel(input_file)
+
+# Parse the cleaned_date column again (just in case it's not datetime)
+df["cleaned_date"] = pd.to_datetime(df["cleaned_date"], errors='coerce')
+
+# Define cutoff date
+cutoff = pd.Timestamp("2025-08-01")
+
+# Save it back to Excel first (to apply style next)
+temp_file = "highlighted_dates.xlsx"
+df.to_excel(temp_file, index=False)
+
+# Load with openpyxl for styling
+wb = load_workbook(temp_file)
+ws = wb.active
+
+# Find the column number of "cleaned_date"
+header = [cell.value for cell in ws[1]]
+date_col_index = header.index("cleaned_date") + 1  # openpyxl uses 1-based index
+
+# Define yellow fill
+yellow_fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
+
+# Loop through data rows
+for row in range(2, ws.max_row + 1):
+    cell = ws.cell(row=row, column=date_col_index)
+    try:
+        cell_date = pd.to_datetime(cell.value)
+        if pd.notna(cell_date) and cell_date < cutoff:
+            cell.fill = yellow_fill
+    except:
+        continue
+
+# Save the styled file
+wb.save("highlighted_dates.xlsx")
